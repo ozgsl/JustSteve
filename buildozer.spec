@@ -5,7 +5,7 @@ package.domain = org.ozgsl
 source.dir = .
 source.include_exts = py,png,jpg,kv,atlas,ogg,ttf,wav
 version = 1.0
-requirements = python3,pygame
+requirements = python3==3.10.12,pygame
 orientation = landscape
 fullscreen = 1
 android.archs = arm64-v8a, armeabi-v7a
