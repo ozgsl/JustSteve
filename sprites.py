@@ -73,8 +73,8 @@ class Player(pygame.sprite.Sprite):
         self.world_x = 0
 
         # Ses
-        self.jump_sound = self._snd('assets/sounds/jump.wav')
-        self.hit_sound = self._snd('assets/sounds/stomp.wav')
+        self.jump_sound = self._snd('assets/sounds/jump.ogg')
+        self.hit_sound = self._snd('assets/sounds/hit.ogg')
 
     def _snd(self, p):
         try: return pygame.mixer.Sound(p)
@@ -143,7 +143,8 @@ class Player(pygame.sprite.Sprite):
 
     def _try_jump(self):
         if self.coyote_timer > 0:
-            self.vel.y = JUMP_FORCE
+            speed_bonus = (abs(self.vel.x) / MAX_SPEED) * 1.5
+            self.vel.y = JUMP_FORCE - speed_bonus
             self.coyote_timer = 0
             self.jump_buffer_timer = 0
             self.on_ground = False

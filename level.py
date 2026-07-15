@@ -62,8 +62,8 @@ class Level:
         self.decor_generated_up_to = 0
 
         # Ses
-        self.coin_sound = self._snd('assets/sounds/coin.wav')
-        self.stomp_sound = self._snd('assets/sounds/stomp.wav')
+        self.coin_sound = self._snd('assets/sounds/coin.ogg')
+        self.stomp_sound = self._snd('assets/sounds/stomp.ogg')
 
         # Ilk uretim
         self._generate_until(WIDTH + CHUNK_WIDTH * 3)
@@ -316,9 +316,13 @@ class Level:
                 continue
 
             if enemy.rect.colliderect(p.rect):
-                if p.vel.y > 0 and p.rect.bottom < enemy.rect.centery + 5:
+                if p.vel.y > 0 and p.rect.bottom < enemy.rect.centery + 10:
                     killed = enemy.take_hit()
-                    p.vel.y = JUMP_FORCE * 0.6
+                    if p.jump_held:
+                        p.vel.y = JUMP_FORCE * 0.9 # High bounce
+                    else:
+                        p.vel.y = JUMP_FORCE * 0.5 # Short hop
+                    
                     if self.stomp_sound: self.stomp_sound.play()
                     if killed:
                         for _ in range(8):
@@ -406,7 +410,20 @@ class Level:
         if p.dashing:
             p.vel.x = DASH_SPEED * p.dash_dir
         else:
-            p.vel.x = move_x * p.speed
+            if move_x != 0:
+                if (move_x > 0 and p.vel.x < 0) or (move_x < 0 and p.vel.x > 0):
+                    p.vel.x += move_x * SKID_FRICTION
+                else:
+                    p.vel.x += move_x * ACCELERATION
+                
+                if abs(p.vel.x) > MAX_SPEED:
+                    p.vel.x = MAX_SPEED if p.vel.x > 0 else -MAX_SPEED
+            else:
+                if p.vel.x > 0:
+                    p.vel.x = max(0, p.vel.x - FRICTION)
+                elif p.vel.x < 0:
+                    p.vel.x = min(0, p.vel.x + FRICTION)
+                    
         if move_x > 0: p.facing_right = True
         elif move_x < 0: p.facing_right = False
 

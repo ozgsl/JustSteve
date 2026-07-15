@@ -22,11 +22,16 @@ class Game:
 
         # Muzik
         self.music_on = True
+        self._play_music('assets/sounds/music_menu.ogg')
+
+    def _play_music(self, path):
+        if not self.music_on: return
         try:
-            pygame.mixer.music.load('assets/sounds/music.mp3')
+            pygame.mixer.music.load(path)
             pygame.mixer.music.set_volume(0.4)
             pygame.mixer.music.play(-1)
-        except Exception: pass
+        except Exception:
+            pass
 
         # UI
         self.hud = HUD()
@@ -59,6 +64,7 @@ class Game:
 
     def _start_game(self):
         self.current_level = 0
+        self._play_music('assets/sounds/music_game.ogg')
         self._start_transition(self._load_level)
 
     def _load_level(self):
@@ -76,6 +82,7 @@ class Game:
 
     def _go_menu(self):
         self.state = "MENU"
+        self._play_music('assets/sounds/music_menu.ogg')
         self._setup_menu()
 
     def _toggle_music(self):

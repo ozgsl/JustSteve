@@ -6,11 +6,16 @@ HEIGHT = 540
 FPS = 60
 TILE_SIZE = 32
 
-# -- Fizik --
+# -- Fizik & Mario Mekanikleri --
 GRAVITY = 0.55
 MAX_FALL_SPEED = 14
 JUMP_FORCE = -12.5
-MOVE_SPEED = 4.5
+
+# Mario benzeri ivme ve sürtünme
+MAX_SPEED = 5.0
+ACCELERATION = 0.3
+FRICTION = 0.2
+SKID_FRICTION = 0.5 # Geriye dönerken kayma sürtünmesi
 
 # -- Hollow Knight Mekanigi --
 COYOTE_TIME = 7

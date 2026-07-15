@@ -37,12 +37,11 @@ def generate_block(name, top_color, bottom_color, spots=True):
     s = pygame.Surface((16, 16), pygame.SRCALPHA)
     s.fill(bottom_color)
     if spots:
-        # Rastgele noktalar
-
+        # Daha detayli rastgele noktalar
         random.seed(hash(name))
-        for _ in range(30):
+        for _ in range(80):
             rx, ry = random.randint(0, 15), random.randint(0, 15)
-            shade = random.randint(-15, 15)
+            shade = random.randint(-25, 25)
             c = (
                 max(0, min(255, bottom_color[0] + shade)),
                 max(0, min(255, bottom_color[1] + shade)),
@@ -53,10 +52,27 @@ def generate_block(name, top_color, bottom_color, spots=True):
     if top_color != bottom_color:
         for y in range(4):
             for x in range(16):
-                px(s, x, y, top_color)
-                # Rastgele sarkıt
-                if y == 3 and random.random() < 0.3:
-                    px(s, x, y+1, top_color)
+                shade = random.randint(-15, 15)
+                c = (
+                    max(0, min(255, top_color[0] + shade)),
+                    max(0, min(255, top_color[1] + shade)),
+                    max(0, min(255, top_color[2] + shade))
+                )
+                px(s, x, y, c)
+                # Rastgele sarkıt (daha belirgin)
+                if y == 3 and random.random() < 0.4:
+                    px(s, x, y+1, c)
+                    if random.random() < 0.3:
+                        px(s, x, y+2, c)
+                        
+    # Kenar gölgelendirmesi (3D Minecraft etkisi)
+    edge_surf = pygame.Surface((16, 16), pygame.SRCALPHA)
+    pygame.draw.line(edge_surf, (255, 255, 255, 60), (0, 0), (15, 0))
+    pygame.draw.line(edge_surf, (255, 255, 255, 60), (0, 0), (0, 15))
+    pygame.draw.line(edge_surf, (0, 0, 0, 80), (0, 15), (15, 15))
+    pygame.draw.line(edge_surf, (0, 0, 0, 80), (15, 0), (15, 15))
+    s.blit(edge_surf, (0, 0))
+    
     save(s, f'assets/textures/{name}.png', (32, 32))
 
 generate_block('grass', (80, 180, 60), (120, 80, 40))
