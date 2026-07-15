@@ -2,8 +2,13 @@
 main.py - JustSteve v2
 Biyom gecisleri, portal animasyonu, Alex kurtarma sahnesi
 """
-import pygame
+import os
 import sys
+
+# Set working directory to ensure assets are found on Android
+os.chdir(os.path.dirname(os.path.abspath(__file__)))
+
+import pygame
 from settings import *
 from level import Level
 from ui import HUD, TouchControls, Button, DeathScreen, LevelCompleteScreen
@@ -13,7 +18,8 @@ class Game:
     def __init__(self):
         pygame.init()
         pygame.mixer.init()
-        self.screen = pygame.display.set_mode((WIDTH, HEIGHT))
+        # Scale the game to fit the Android screen
+        self.screen = pygame.display.set_mode((WIDTH, HEIGHT), pygame.SCALED | pygame.FULLSCREEN)
         pygame.display.set_caption("JustSteve")
         self.clock = pygame.time.Clock()
 
