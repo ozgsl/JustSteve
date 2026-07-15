@@ -8,15 +8,27 @@ import math
 import random
 from settings import *
 
+import os
+
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+_image_cache = {}
+
 def load_img(path, size=None):
+    cache_key = (path, size)
+    if cache_key in _image_cache:
+        return _image_cache[cache_key]
+        
+    full_path = os.path.join(BASE_DIR, path)
     try:
-        img = pygame.image.load(path).convert_alpha()
+        img = pygame.image.load(full_path).convert_alpha()
         if size:
             img = pygame.transform.scale(img, size)
+        _image_cache[cache_key] = img
         return img
     except Exception:
         s = pygame.Surface(size or (32, 32), pygame.SRCALPHA)
         s.fill((255, 0, 255, 120))
+        _image_cache[cache_key] = s
         return s
 
 # =====================================================================

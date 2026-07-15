@@ -33,7 +33,8 @@ class Game:
     def _play_music(self, path):
         if not self.music_on: return
         try:
-            pygame.mixer.music.load(path)
+            full_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), path)
+            pygame.mixer.music.load(full_path)
             pygame.mixer.music.set_volume(0.4)
             pygame.mixer.music.play(-1)
         except Exception:
