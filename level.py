@@ -489,8 +489,9 @@ class Level:
                     
         # Gruplari guncelle
         self.player_group.update()
-        self.enemies.update(self.blocks, self.player)
+        self.enemies.update()
         self.arrows.update()
+        self.question_blocks.update()
         self.emeralds.update()
         self.hearts.update()
         self.skill_drops.update()
