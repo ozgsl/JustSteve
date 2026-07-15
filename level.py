@@ -545,8 +545,8 @@ class Level:
         for ex in self.explosions: self.display_surface.blit(ex.image, (ex.rect.x - cx, ex.rect.y))
         for tr in self.traders: self.display_surface.blit(tr.image, (tr.rect.x - cx, tr.rect.y))
         for ll in self.llamas: self.display_surface.blit(ll.image, (ll.rect.x - cx, ll.rect.y))
-        
-        self.player_group.draw(self.display_surface)
+        if self.player.alive:
+            self.display_surface.blit(self.player.image, (self.player.rect.x - cx, self.player.rect.y))
         
         # Dusmanlar
         for e in self.enemies:
