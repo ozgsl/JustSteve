@@ -12,7 +12,7 @@ MAX_FALL_SPEED = 14
 JUMP_FORCE = -12.5
 
 # Mario benzeri ivme ve sürtünme
-MAX_SPEED = 4.0
+MAX_SPEED = 5.0
 ACCELERATION = 0.3
 FRICTION = 0.2
 SKID_FRICTION = 0.5 # Geriye dönerken kayma sürtünmesi
