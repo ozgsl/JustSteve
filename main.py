@@ -48,6 +48,14 @@ class Game:
         # Font
         self.font_title = pygame.font.SysFont('Arial', 56, bold=True)
         self.font_sub = pygame.font.SysFont('Arial', 18)
+        
+        # Olaylar arasi kayitlar
+        self.player_hp = PLAYER_MAX_HP
+        self.player_emeralds = 0
+        
+        # Menu Arkaplani
+        self.menu_bg_level = Level(0, self.screen) # Default plains
+        self.menu_bg_level.player.kill() # Oynatici gozukmesin
 
         self._setup_menu()
 
@@ -64,16 +72,22 @@ class Game:
 
     def _start_game(self):
         self.current_level = 0
+        self.player_hp = PLAYER_MAX_HP
+        self.player_emeralds = 0
         self._play_music('assets/sounds/music_game.ogg')
         self._start_transition(self._load_level)
 
     def _load_level(self):
         self.level = Level(self.current_level, self.screen)
+        self.level.player.hp = self.player_hp
+        self.level.player.emeralds = self.player_emeralds
         self.death_screen = None
         self.complete_screen = None
         self.state = "PLAYING"
 
     def _next_level(self):
+        self.player_hp = self.level.player.hp
+        self.player_emeralds = self.level.player.emeralds
         self.current_level += 1
         if self.current_level >= 5:
             self._start_transition(self._go_menu)
@@ -192,12 +206,18 @@ class Game:
             self.screen.fill((0, 0, 0))
 
             if self.state == "MENU":
-                # Gradient arka plan
-                for y in range(0, HEIGHT, 2):
-                    r = y / HEIGHT
-                    c = (int(80*(1-r)+30*r), int(120*(1-r)+50*r), int(200*(1-r)+80*r))
-                    pygame.draw.line(self.screen, c, (0, y), (WIDTH, y))
-                    pygame.draw.line(self.screen, c, (0, y+1), (WIDTH, y+1))
+                # Hareketli MC arka plani (Level ile)
+                self.menu_bg_level.camera_x += 1.5
+                self.menu_bg_level._generate_until(self.menu_bg_level.camera_x + WIDTH + CHUNK_WIDTH)
+                self.menu_bg_level._generate_decor_until(self.menu_bg_level.camera_x + WIDTH + CHUNK_WIDTH)
+                self.menu_bg_level._cleanup_left()
+                self.menu_bg_level.draw()
+                
+                # Karartma filtresi (okunabilirlik icin)
+                overlay = pygame.Surface((WIDTH, HEIGHT), pygame.SRCALPHA)
+                overlay.fill((0, 0, 0, 100))
+                self.screen.blit(overlay, (0, 0))
+
                 self._text_c("JustSteve", self.font_title, (255, 255, 255), HEIGHT // 4)
                 self._text_c("Alex'i Kurtar!", self.font_sub, (200, 200, 200), HEIGHT // 4 + 50)
                 for btn in self.menu_buttons:

@@ -317,16 +317,31 @@ for i in range(4):
     save(s, f'assets/textures/emerald_{i}.png', (22, 22))
 
 # Hearts
-s = pygame.Surface((12, 12), pygame.SRCALPHA)
-pygame.draw.circle(s, (220, 20, 20), (3, 3), 3)
-pygame.draw.circle(s, (220, 20, 20), (8, 3), 3)
-pygame.draw.polygon(s, (220, 20, 20), [(1, 5), (10, 5), (6, 10)])
+heart_map = { 'B': (0,0,0), 'W': (255,255,255), 'R': (220,20,20), 'D': (150,0,0), 'G': (80,80,80), 'd': (50,50,50) }
+heart_pix_full = """
+.BB...BB.
+BWWBBBWRB
+BWWRBRRRB
+.BRRRRRB.
+..BRRRB..
+...BRB...
+....B....
+"""
+s = pygame.Surface((9, 7), pygame.SRCALPHA)
+draw_from_map(s, heart_map, heart_pix_full, 0, 0)
 save(s, 'assets/textures/heart_full.png', (24, 24))
 
-s = pygame.Surface((12, 12), pygame.SRCALPHA)
-pygame.draw.circle(s, (80, 80, 80), (3, 3), 3)
-pygame.draw.circle(s, (80, 80, 80), (8, 3), 3)
-pygame.draw.polygon(s, (80, 80, 80), [(1, 5), (10, 5), (6, 10)])
+heart_pix_empty = """
+.BB...BB.
+BGGBBBddB
+BGGdGdddB
+.BdddddB.
+..BdddB..
+...BdB...
+....B....
+"""
+s = pygame.Surface((9, 7), pygame.SRCALPHA)
+draw_from_map(s, heart_map, heart_pix_empty, 0, 0)
 save(s, 'assets/textures/heart_empty.png', (24, 24))
 
 # Mushroom

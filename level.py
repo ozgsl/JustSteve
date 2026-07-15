@@ -148,11 +148,11 @@ class Level:
 
         # Platform
         has_plat = False; plat_s = -1; plat_e = -1; plat_row = GROUND_ROW
-        if not is_safe and random.random() < 0.30:
+        if not is_safe and random.random() < 0.55:
             has_plat = True
             plat_s = random.randint(2, CHUNK_COLS - 6)
             plat_e = plat_s + random.randint(3, 5)
-            plat_row = GROUND_ROW - random.randint(3, 5)
+            plat_row = GROUND_ROW - random.randint(3, 6)
             # Bosluk olmayan yerde platform (gecis sagla)
             # Platform min 2 tile yukseklikte olsun ki oyuncu gecebilsin
             if plat_row > GROUND_ROW - 2:
@@ -388,8 +388,8 @@ class Level:
             if arrow.rect.colliderect(p.rect):
                 arrow.kill(); p.take_damage()
 
-        # Portal kontrolu
-        if self.portal and p.rect.colliderect(self.portal.rect):
+        # Portal kontrolu (ustunden atlamayi engellemek icin X koordinatini kontrol et)
+        if self.portal and p.rect.centerx >= self.portal.rect.centerx:
             self.portal_entered = True
             self.completed = True
 

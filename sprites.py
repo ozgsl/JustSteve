@@ -39,7 +39,7 @@ class Player(pygame.sprite.Sprite):
 
         # Fizik
         self.vel = pygame.math.Vector2(0, 0)
-        self.speed = MOVE_SPEED
+        self.speed = MAX_SPEED
         self.on_ground = False
 
         # HK mekanikleri
