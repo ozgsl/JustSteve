@@ -101,6 +101,16 @@ for x in range(16):
 save(s_ice, 'assets/textures/ice.png', (32, 32))
 generate_block('dark_wood', (60, 40, 20), (60, 40, 20))
 
+# Lav bloğu
+s_lava = pygame.Surface((16, 16), pygame.SRCALPHA)
+s_lava.fill((220, 60, 0))
+for _ in range(30):
+    rx, ry = random.randint(0, 15), random.randint(0, 15)
+    c = random.choice([(255, 100, 0), (200, 40, 0), (255, 150, 0)])
+    px(s_lava, rx, ry, c)
+save(s_lava, 'assets/textures/lava.png', (32, 32))
+
+
 # Soru bloğu
 def gen_qb(hit=False):
     s = pygame.Surface((16, 16), pygame.SRCALPHA)
@@ -132,16 +142,17 @@ char_map_base = {
     'G': (80, 80, 80),    # Shoes
     'E': (255, 255, 255), # Eye white
     'P': (0, 0, 0),       # Pupil
+    'M': (150, 100, 80),  # Mouth
 }
 
 def draw_char(s, cmap, frame):
     head = """
     .HHHHHH.
-    .HSSSSH.
+    .HSSSSHH
+    HESSSSEH
+    HSPSPPSH
     HSSSSSSH
-    HSESESH.
-    HSPSPSH.
-    HSSSSSSH
+    .HSMMSH.
     .HSSSSH.
     """
     body = """

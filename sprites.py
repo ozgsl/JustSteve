@@ -76,6 +76,15 @@ class Player(pygame.sprite.Sprite):
         self.has_double_jump = False
         self.double_jump_used = False
 
+        self.skill_timer = 0
+        self.is_attacking = False
+        self.attack_timer = 0
+        
+        # Portal animasyonu
+        self.entering_portal = False
+        self.portal_timer = 0
+        self.portal_angle = 0
+
         # Skill: Shrink
         self.is_shrunk = False
         self.shrink_timer = 0
@@ -262,6 +271,33 @@ class Player(pygame.sprite.Sprite):
         if not self.alive: return
         self.update_timers()
         self.update_animation()
+
+    def draw_offset(self, surface, camera_x):
+        if not self.alive: return
+        img = self.image
+        
+        if self.entering_portal:
+            scale = max(0.1, self.portal_timer / 60.0)
+            sz = (max(1, int(img.get_width() * scale)), max(1, int(img.get_height() * scale)))
+            img = pygame.transform.scale(img, sz)
+            img = pygame.transform.rotate(img, self.portal_angle)
+            rect = img.get_rect(center=self.rect.center)
+            surface.blit(img, (rect.x - camera_x, rect.y))
+            return
+            
+        if self.invincible and self.invincible_timer % 10 < 5:
+            # Yanip sonme (kisa cizim yapma veya transparan)
+            pass
+        else:
+            surface.blit(img, (self.rect.x - camera_x, self.rect.y))
+            
+        # Silah/Kalkan cizimi
+        if self.active_skill == 'sword' and self.is_attacking:
+            off_x = 20 if self.facing_right else -30
+            surface.blit(self.img_sword, (self.rect.centerx - camera_x + off_x, self.rect.centery - 10))
+        elif self.active_skill == 'shield':
+            off_x = 10 if self.facing_right else -20
+            surface.blit(self.img_shield, (self.rect.centerx - camera_x + off_x, self.rect.centery - 15))
 
 
 # =====================================================================
@@ -516,25 +552,62 @@ class QuestionBlock(pygame.sprite.Sprite):
         self.was_hit = False
         self.bounce_offset = 0
         self.bouncing = False
+        self.original_y = y
 
     def hit(self):
         if not self.was_hit:
             self.was_hit = True
             self.image = self.image_hit
             self.bouncing = True
-            self.bounce_offset = -8
+            self.bounce_offset = -6
             return True
         return False
 
     def update(self):
         if self.bouncing:
-            self.bounce_offset += 2
+            self.bounce_offset += 1
             if self.bounce_offset >= 0:
                 self.bounce_offset = 0
                 self.bouncing = False
+            self.rect.y = self.original_y + self.bounce_offset
 
     def draw_offset(self, surface, camera_x):
         surface.blit(self.image, (self.rect.x - camera_x, self.rect.y + self.bounce_offset))
+
+
+class SandBlock(Block):
+    def __init__(self, x, y, img_path):
+        super().__init__(x, y, img_path)
+        self.falling = False
+        self.fall_timer = 180 # 3 seconds at 60 FPS
+        self.shake_offset = 0
+
+    def start_falling(self):
+        self.falling = True
+
+    def update(self):
+        if self.falling:
+            self.fall_timer -= 1
+            if self.fall_timer < 60:
+                self.shake_offset = random.randint(-2, 2)
+                self.rect.x += self.shake_offset
+            if self.fall_timer <= 0:
+                self.kill()
+
+
+class LavaBlock(pygame.sprite.Sprite):
+    def __init__(self, x, y):
+        super().__init__()
+        self.image = load_img('assets/textures/lava.png', (TILE_SIZE, TILE_SIZE))
+        self.rect = self.image.get_rect(topleft=(x, y))
+        self.anim_timer = 0
+        self.y_offset = 0
+
+    def update(self):
+        self.anim_timer += 1
+        if self.anim_timer % 30 == 0:
+            self.y_offset = 2 if self.y_offset == 0 else 0
+            self.rect.y += self.y_offset - (2 if self.y_offset == 2 else -2)
 
 
 class Emerald(pygame.sprite.Sprite):

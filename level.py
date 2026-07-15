@@ -9,7 +9,8 @@ from settings import *
 from sprites import (
     Block, QuestionBlock, Player, Zombie, Skeleton, Enderman, Creeper,
     Emerald, HeartPickup, SkillDrop, Arrow, Explosion, Particle,
-    Portal, Cloud, TreeDecor, GrassTuft, AlexNPC, Trader, Llama
+    Portal, Cloud, TreeDecor, GrassTuft, AlexNPC, Trader, Llama,
+    SandBlock, LavaBlock
 )
 
 
@@ -129,91 +130,109 @@ class Level:
     # ------- Chunk uretimi -------
     def _generate_until(self, world_x):
         while self.generated_up_to < world_x:
-            self._generate_chunk(self.generated_up_to, self.chunk_index)
+            self._generate_chunk(self.generated_up_to)
             self.generated_up_to += CHUNK_WIDTH
             self.chunk_index += 1
 
-    def _generate_chunk(self, start_x, chunk_idx):
-        biome = self.biome
-        is_safe = chunk_idx < 3
+    def _generate_chunk(self, start_x):
+        is_safe = (start_x < CHUNK_WIDTH)
 
-        # Portal mesafesine ulasildi mi?
         if start_x >= self.target_distance and not self.portal_spawned:
             self._spawn_portal(start_x)
             return
 
-        # Bosluk
         has_gap = False; gap_start = -1; gap_end = -1
         if not is_safe and random.random() < self.gap_chance:
             has_gap = True
             gap_start = random.randint(3, CHUNK_COLS - 5)
-            gap_end = min(gap_start + random.randint(2, 3), CHUNK_COLS - 2)
+            gap_end = min(gap_start + random.randint(2, 4), CHUNK_COLS - 2)
 
-        # Platform
         has_plat = False; plat_s = -1; plat_e = -1; plat_row = GROUND_ROW
         if not is_safe and random.random() < 0.55:
             has_plat = True
             plat_s = random.randint(2, CHUNK_COLS - 6)
             plat_e = plat_s + random.randint(3, 5)
-            plat_row = GROUND_ROW - random.randint(3, 6)
-            # Bosluk olmayan yerde platform (gecis sagla)
-            # Platform min 2 tile yukseklikte olsun ki oyuncu gecebilsin
-            if plat_row > GROUND_ROW - 2:
-                plat_row = GROUND_ROW - 3
 
-        # Zemin bloklari
-        ground_img = f'assets/textures/{biome["ground"]}.png'
-        under_img = f'assets/textures/{biome["under"]}.png'
-        plat_img = f'assets/textures/{biome["platform"]}.png'
+        ground_img = f'assets/textures/{self.biome["ground"]}.png'
+        under_img = f'assets/textures/{self.biome["under"]}.png'
+        plat_img = f'assets/textures/{self.biome["platform"]}.png'
+        is_desert = (self.biome['name'] == 'desert')
+        is_dark = (self.biome['name'] == 'dark_forest')
+
+        # Wavy ground logic
+        if not hasattr(self, 'current_ground'):
+            self.current_ground = GROUND_ROW
+
+        # Ensure ground doesn't go too high or too low
+        if random.random() < 0.3 and not has_gap:
+            self.current_ground += random.choice([-1, 1])
+            self.current_ground = max(GROUND_ROW - 2, min(GROUND_ROW + 1, self.current_ground))
+
+        if has_plat:
+            plat_row = self.current_ground - random.randint(3, 5)
+            if plat_row > self.current_ground - 2:
+                plat_row = self.current_ground - 3
 
         for col in range(CHUNK_COLS):
             wx = start_x + col * TILE_SIZE
+            
+            # Wavy ground fluctuation inside the chunk
+            if not has_gap and random.random() < 0.1:
+                self.current_ground += random.choice([-1, 1])
+                self.current_ground = max(GROUND_ROW - 2, min(GROUND_ROW + 1, self.current_ground))
+                
             if has_gap and gap_start <= col < gap_end:
+                if is_dark:
+                    self.blocks.add(LavaBlock(wx, (TOTAL_ROWS - 1) * TILE_SIZE))
                 continue
-            self.blocks.add(Block(wx, GROUND_ROW * TILE_SIZE, ground_img))
-            for row in range(GROUND_ROW + 1, TOTAL_ROWS):
+            
+            # Ground Block
+            if is_desert:
+                self.blocks.add(SandBlock(wx, self.current_ground * TILE_SIZE, ground_img))
+            else:
+                self.blocks.add(Block(wx, self.current_ground * TILE_SIZE, ground_img))
+                
+            for row in range(self.current_ground + 1, TOTAL_ROWS):
                 self.blocks.add(Block(wx, row * TILE_SIZE, under_img))
 
-        # Platform
         if has_plat:
             for col in range(plat_s, min(plat_e, CHUNK_COLS)):
                 wx = start_x + col * TILE_SIZE
                 self.blocks.add(Block(wx, plat_row * TILE_SIZE, plat_img))
 
-        # Soru blogu
-        if not is_safe and random.random() < 0.25:
+        if not is_safe and random.random() < 0.35:
             qc = random.randint(2, CHUNK_COLS - 3)
-            qr = GROUND_ROW - random.randint(3, 5)
+            qr = self.current_ground - random.randint(3, 5)
+            # Prevent overlap with platform
+            if has_plat and plat_s <= qc < plat_e and abs(qr - plat_row) <= 1:
+                qr -= 2 # Move it higher
             if not (has_gap and gap_start <= qc < gap_end):
                 self.question_blocks.add(QuestionBlock(start_x + qc * TILE_SIZE, qr * TILE_SIZE))
 
-        # Dusman
         if not is_safe and random.random() < self.enemy_chance:
             ec = random.randint(3, CHUNK_COLS - 3)
             if not (has_gap and gap_start <= ec < gap_end):
                 ex = start_x + ec * TILE_SIZE
-                ey = GROUND_ROW * TILE_SIZE - PLAYER_HEIGHT
+                ey = self.current_ground * TILE_SIZE - PLAYER_HEIGHT
                 etype = self._pick_enemy()
                 enemy = etype(ex, ey, self.speed_mult)
                 enemy.player_ref = self.player
                 self.enemies.add(enemy)
 
-        # Zumrut
         if not is_safe and random.random() < 0.2:
             for _ in range(random.randint(1, 3)):
                 ec2 = random.randint(1, CHUNK_COLS - 2)
                 if not (has_gap and gap_start <= ec2 < gap_end):
                     self.emeralds.add(Emerald(
                         start_x + ec2 * TILE_SIZE + TILE_SIZE // 2,
-                        (GROUND_ROW - random.randint(2, 4)) * TILE_SIZE + TILE_SIZE // 2
+                        (self.current_ground - random.randint(2, 4)) * TILE_SIZE + TILE_SIZE // 2
                     ))
 
-        # Trader & Llama
         if not is_safe and random.random() < 0.05:
             tc = random.randint(2, CHUNK_COLS - 3)
             if not (has_gap and gap_start <= tc < gap_end):
                 tx = start_x + tc * TILE_SIZE
-                ty = GROUND_ROW * TILE_SIZE
+                ty = self.current_ground * TILE_SIZE
                 self.traders.add(Trader(tx, ty))
                 self.llamas.add(Llama(tx + 45, ty))
 
@@ -266,6 +285,11 @@ class Level:
         p.rect.x += p.vel.x
         for b in list(self.blocks) + list(self.question_blocks):
             if b.rect.colliderect(p.rect):
+                if isinstance(b, LavaBlock):
+                    p.take_damage(1)
+                    p.vel.y = -10
+                    if self.hit_sound: self.hit_sound.play()
+                    continue
                 if p.vel.x > 0: p.rect.right = b.rect.left
                 elif p.vel.x < 0: p.rect.left = b.rect.right
 
@@ -277,16 +301,25 @@ class Level:
 
         for b in list(self.blocks) + list(self.question_blocks):
             if b.rect.colliderect(p.rect):
+                if isinstance(b, LavaBlock):
+                    p.take_damage(1)
+                    p.vel.y = -12
+                    if self.hit_sound: self.hit_sound.play()
+                    continue
                 if p.vel.y > 0:
                     p.rect.bottom = b.rect.top
                     p.vel.y = 0
                     p.on_ground = True
+                    if isinstance(b, SandBlock):
+                        b.start_falling()
                 elif p.vel.y < 0:
                     p.rect.top = b.rect.bottom
                     p.vel.y = 0
-                    if isinstance(b, QuestionBlock) and b.hit():
-                        self.emeralds.add(Emerald(b.rect.centerx, b.rect.top - 10, True))
-                        if self.coin_sound: self.coin_sound.play()
+                    if isinstance(b, QuestionBlock):
+                        if abs(p.rect.centerx - b.rect.centerx) < TILE_SIZE: # Hitbox tolerance
+                            if b.hit():
+                                self.emeralds.add(Emerald(b.rect.centerx, b.rect.top - 10, True))
+                                if self.coin_sound: self.coin_sound.play()
 
     def _enemy_block_collisions(self):
         for enemy in self.enemies:
@@ -421,10 +454,21 @@ class Level:
                 if arrow.rect.colliderect(p.rect):
                     arrow.kill(); p.take_damage()
 
-        # Portal kontrolu (ustunden atlamayi engellemek icin X koordinatini kontrol et)
+        # Portal kontrolu
         if self.portal and p.rect.centerx >= self.portal.rect.centerx:
-            self.portal_entered = True
-            self.completed = True
+            if not p.entering_portal:
+                p.entering_portal = True
+                p.portal_timer = 60 # 1 saniye animasyon (60 FPS)
+
+        if p.entering_portal:
+            p.vel.x = 0
+            p.vel.y = 0
+            p.portal_angle -= 15
+            p.portal_timer -= 1
+            if p.portal_timer <= 0:
+                self.portal_entered = True
+                self.completed = True
+            return
 
     def _check_death(self):
         if self.player.rect.top > KILL_Y:
@@ -440,6 +484,13 @@ class Level:
             return
 
         p = self.player
+        
+        if p.entering_portal:
+            # Sadece animasyon
+            self._item_collisions() # For updating portal timer
+            self._update_camera()
+            return
+            
         if p.dashing:
             p.vel.x = DASH_SPEED * p.dash_dir
         else:
