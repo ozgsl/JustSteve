@@ -25,13 +25,15 @@ DASH_SPEED = 14
 DASH_DURATION = 8
 DASH_COOLDOWN = 40
 
-# -- Oyuncu --
+# -- Oyuncu & Skiller --
 PLAYER_WIDTH = 28
 PLAYER_HEIGHT = 38
 PLAYER_MAX_HP = 10
 INVINCIBILITY_FRAMES = 90
 SHRINK_SCALE = 0.55      # Kucuk boyut carpani
 SHRINK_DURATION = 600     # 10 saniye
+SKILL_DURATION = 600      # Diger yeteneklerin suresi (10s)
+TRADER_SKILL_COST = 5     # Zümrüt bedeli
 
 # -- Dusmanlar --
 ZOMBIE_SPEED = 1.2

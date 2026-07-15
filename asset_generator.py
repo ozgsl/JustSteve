@@ -287,6 +287,34 @@ for i in [0, 1]:
         pygame.draw.rect(s, g, (5, 16, 4, 3))
     save(s, f'assets/textures/creeper_{i}.png', (28, 38))
 
+# Trader
+trader_map = char_map_base.copy()
+trader_map['C'] = (20, 20, 180) # Blue coat
+trader_map['H'] = (80, 50, 20)
+s = pygame.Surface((14, 19), pygame.SRCALPHA)
+draw_char(s, trader_map, 'idle_0')
+save(s, 'assets/textures/trader.png', (28, 38))
+
+# Llama
+llama_map = { 'B': (120, 80, 40), 'W': (240, 230, 210), 'D': (80, 50, 20), 'E': (0,0,0) }
+llama_pix = """
+...WW......
+..WEW......
+..WW.......
+..WW.......
+..WW.......
+..WW.......
+.WWWWW.....
+WWWWWWW....
+WWWWWWW....
+.WWWW......
+.D..D......
+.D..D......
+"""
+s = pygame.Surface((12, 12), pygame.SRCALPHA)
+draw_from_map(s, llama_map, llama_pix, 0, 0)
+save(s, 'assets/textures/llama.png', (36, 36))
+
 # ----------------- OBJECTS -----------------
 # Emerald
 em_map = { 'D': (20, 140, 40), 'L': (60, 220, 80), 'H': (180, 255, 200) }
@@ -450,8 +478,24 @@ save(s, 'assets/textures/skill_doublejump.png', (24, 24))
 s = pygame.Surface((12, 12), pygame.SRCALPHA)
 pygame.draw.rect(s, (200, 100, 255), (3, 6, 6, 6))
 pygame.draw.rect(s, (255, 255, 255), (4, 7, 2, 2))
-pygame.draw.rect(s, (100, 50, 120), (5, 2, 2, 4))
 save(s, 'assets/textures/skill_shrink.png', (24, 24))
+
+# New skills
+s = pygame.Surface((12, 12), pygame.SRCALPHA)
+# Bow
+pygame.draw.arc(s, (139, 69, 19), (2, 2, 8, 8), -math.pi/2, math.pi/2, 2)
+pygame.draw.line(s, (200, 200, 200), (6, 2), (6, 10))
+save(s, 'assets/textures/skill_bow.png', (24, 24))
+# Sword
+s = pygame.Surface((12, 12), pygame.SRCALPHA)
+pygame.draw.line(s, (200, 200, 200), (2, 10), (10, 2), 2)
+pygame.draw.line(s, (139, 69, 19), (2, 10), (4, 8), 3)
+save(s, 'assets/textures/skill_sword.png', (24, 24))
+# Shield
+s = pygame.Surface((12, 12), pygame.SRCALPHA)
+pygame.draw.polygon(s, (150, 150, 150), [(2, 2), (10, 2), (10, 8), (6, 12), (2, 8)])
+pygame.draw.polygon(s, (139, 69, 19), [(3, 3), (9, 3), (9, 7), (6, 10), (3, 7)])
+save(s, 'assets/textures/skill_shield.png', (24, 24))
 
 # ----------------- UI -----------------
 # Button
@@ -476,10 +520,15 @@ def sym_jump(s): pygame.draw.circle(s, (255, 255, 255), (35, 35), 15)
 def sym_dash(s):
     pygame.draw.rect(s, (255, 255, 255), (20, 30, 20, 10))
     pygame.draw.polygon(s, (255, 255, 255), [(40, 20), (60, 35), (40, 50)])
+def sym_attack(s):
+    # Cross sword symbol
+    pygame.draw.line(s, (255, 255, 255), (20, 50), (50, 20), 4)
+    pygame.draw.line(s, (255, 255, 255), (20, 20), (50, 50), 4)
 
 draw_touch('left', sym_left)
 draw_touch('right', sym_right)
 draw_touch('jump', sym_jump)
 draw_touch('dash', sym_dash)
+draw_touch('attack', sym_attack)
 
 print("[OK] All assets generated successfully!")

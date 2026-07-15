@@ -18,6 +18,9 @@ class HUD:
         # Skill ikonlari
         self.dj_icon = load_img('assets/textures/skill_doublejump.png', (20, 20))
         self.sh_icon = load_img('assets/textures/skill_shrink.png', (20, 20))
+        self.bow_icon = load_img('assets/textures/skill_bow.png', (20, 20))
+        self.sword_icon = load_img('assets/textures/skill_sword.png', (20, 20))
+        self.shield_icon = load_img('assets/textures/skill_shield.png', (20, 20))
 
     def draw(self, surface, player, level_num, distance_ratio, biome_name=""):
         # Can bari
@@ -46,13 +49,26 @@ class HUD:
 
         # Aktif skill gostergesi
         sy = 42
+        sx = 10
         if player.has_double_jump:
-            surface.blit(self.dj_icon, (10, sy))
+            surface.blit(self.dj_icon, (sx, sy))
+            sx += 24
         if player.is_shrunk:
-            surface.blit(self.sh_icon, (34, sy))
-            # Kalan sure
+            surface.blit(self.sh_icon, (sx, sy))
             secs = player.shrink_timer // FPS
-            self._txt_small(surface, f"{secs}s", 56, sy + 3)
+            self._txt_small(surface, f"{secs}s", sx + 22, sy + 3)
+            sx += 46
+            
+        if player.active_skill:
+            icon = None
+            if player.active_skill == 'bow': icon = self.bow_icon
+            elif player.active_skill == 'sword': icon = self.sword_icon
+            elif player.active_skill == 'shield': icon = self.shield_icon
+            
+            if icon:
+                surface.blit(icon, (sx, sy))
+                secs = player.skill_timer // FPS
+                self._txt_small(surface, f"{secs}s", sx + 22, sy + 3)
 
     def _txt(self, surface, text, x, y):
         shadow = self.font.render(text, True, (30, 30, 30))
@@ -73,16 +89,19 @@ class TouchControls:
         self.btn_right = pygame.Rect(15 + TOUCH_BTN_SIZE + gap, by, TOUCH_BTN_SIZE, TOUCH_BTN_SIZE)
         self.btn_jump = pygame.Rect(WIDTH - TOUCH_BTN_SIZE - 15, by, TOUCH_BTN_SIZE, TOUCH_BTN_SIZE)
         self.btn_dash = pygame.Rect(WIDTH - TOUCH_BTN_SIZE * 2 - 25, by, TOUCH_BTN_SIZE, TOUCH_BTN_SIZE)
+        self.btn_attack = pygame.Rect(WIDTH - TOUCH_BTN_SIZE * 3 - 35, by, TOUCH_BTN_SIZE, TOUCH_BTN_SIZE)
 
         self.img_left = load_img('assets/ui/btn_left.png', (TOUCH_BTN_SIZE, TOUCH_BTN_SIZE))
         self.img_right = load_img('assets/ui/btn_right.png', (TOUCH_BTN_SIZE, TOUCH_BTN_SIZE))
         self.img_jump = load_img('assets/ui/btn_jump.png', (TOUCH_BTN_SIZE, TOUCH_BTN_SIZE))
         self.img_dash = load_img('assets/ui/btn_dash.png', (TOUCH_BTN_SIZE, TOUCH_BTN_SIZE))
+        self.img_attack = load_img('assets/ui/btn_attack.png', (TOUCH_BTN_SIZE, TOUCH_BTN_SIZE))
 
         self.pressing_left = False
         self.pressing_right = False
         self.pressing_jump = False
         self.pressing_dash = False
+        self.pressing_attack = False
 
     def handle_event(self, event, player):
         if event.type in (pygame.MOUSEBUTTONDOWN, pygame.FINGERDOWN):
@@ -95,6 +114,8 @@ class TouchControls:
             if self.btn_dash.collidepoint(pos):
                 self.pressing_dash = True
                 player.start_dash()
+            if self.btn_attack.collidepoint(pos):
+                self.pressing_attack = True
         elif event.type in (pygame.MOUSEBUTTONUP, pygame.FINGERUP):
             self.pressing_left = False
             self.pressing_right = False
@@ -102,6 +123,7 @@ class TouchControls:
                 self.pressing_jump = False
                 player.release_jump()
             self.pressing_dash = False
+            self.pressing_attack = False
 
     def get_move_x(self):
         mx = 0
@@ -109,9 +131,17 @@ class TouchControls:
         if self.pressing_right: mx += 1
         return mx
 
+    def get_attack(self):
+        # We process attack as single frame trigger in main loop by checking UI state
+        if self.pressing_attack:
+            self.pressing_attack = False # Consume it
+            return True
+        return False
+
     def draw(self, surface):
         for img, rect in [(self.img_left, self.btn_left), (self.img_right, self.btn_right),
-                          (self.img_jump, self.btn_jump), (self.img_dash, self.btn_dash)]:
+                          (self.img_jump, self.btn_jump), (self.img_dash, self.btn_dash),
+                          (self.img_attack, self.btn_attack)]:
             tmp = img.copy(); tmp.set_alpha(TOUCH_BTN_ALPHA)
             surface.blit(tmp, rect)
 

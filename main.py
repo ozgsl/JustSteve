@@ -191,6 +191,9 @@ class Game:
                 tm = self.touch.get_move_x()
                 mx = kb if kb != 0 else tm
 
+                if keys[pygame.K_f] or keys[pygame.K_LCTRL] or self.touch.get_attack():
+                    self.level.player.is_attacking = True
+
                 self.level.update(mx)
 
                 if self.level.player_dead:
@@ -226,7 +229,7 @@ class Game:
             elif self.state in ("PLAYING", "DEAD", "LEVEL_COMPLETE"):
                 self.level.draw()
                 biome_name = BIOMES[self.current_level].get('name', '')
-                dr = self.level.player.world_x / self.level.target_distance
+                dr = min(1.0, self.level.player.world_x / self.level.target_distance)
                 self.hud.draw(self.screen, self.level.player, self.current_level, dr, biome_name)
 
                 if self.state == "PLAYING":

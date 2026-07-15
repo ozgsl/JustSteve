@@ -9,7 +9,7 @@ from settings import *
 from sprites import (
     Block, QuestionBlock, Player, Zombie, Skeleton, Enderman, Creeper,
     Emerald, HeartPickup, SkillDrop, Arrow, Explosion, Particle,
-    Portal, Cloud, TreeDecor, GrassTuft, AlexNPC
+    Portal, Cloud, TreeDecor, GrassTuft, AlexNPC, Trader, Llama
 )
 
 
@@ -39,6 +39,8 @@ class Level:
         self.skill_drops = pygame.sprite.Group()
         self.particles = pygame.sprite.Group()
         self.explosions = pygame.sprite.Group()
+        self.traders = pygame.sprite.Group()
+        self.llamas = pygame.sprite.Group()
 
         # Dekorasyon
         self.clouds = []
@@ -63,6 +65,7 @@ class Level:
 
         # Ses
         self.coin_sound = self._snd('assets/sounds/coin.ogg')
+        if self.coin_sound: self.coin_sound.set_volume(1.0)
         self.stomp_sound = self._snd('assets/sounds/stomp.ogg')
 
         # Ilk uretim
@@ -205,6 +208,15 @@ class Level:
                         (GROUND_ROW - random.randint(2, 4)) * TILE_SIZE + TILE_SIZE // 2
                     ))
 
+        # Trader & Llama
+        if not is_safe and random.random() < 0.05:
+            tc = random.randint(2, CHUNK_COLS - 3)
+            if not (has_gap and gap_start <= tc < gap_end):
+                tx = start_x + tc * TILE_SIZE
+                ty = GROUND_ROW * TILE_SIZE
+                self.traders.add(Trader(tx, ty))
+                self.llamas.add(Llama(tx + 45, ty))
+
     def _spawn_portal(self, x):
         self.portal_spawned = True
         # Duz zemin olustur
@@ -235,7 +247,8 @@ class Level:
     def _cleanup_left(self):
         thresh = self.camera_x - CHUNK_WIDTH * 2
         for grp in [self.blocks, self.question_blocks, self.enemies,
-                     self.emeralds, self.arrows, self.skill_drops]:
+                     self.emeralds, self.arrows, self.skill_drops,
+                     self.traders, self.llamas]:
             for s in list(grp):
                 if s.rect.right < thresh: s.kill()
         self.trees = [t for t in self.trees if t.rect.right > thresh]
@@ -363,9 +376,21 @@ class Level:
                     p.activate_double_jump()
                 elif sd.skill_type == 'shrink':
                     p.activate_shrink()
+                elif sd.skill_type in ['bow', 'sword', 'shield']:
+                    p.activate_trader_skill(sd.skill_type)
                 sd.kill()
                 for _ in range(6):
                     self.particles.add(Particle(sd.rect.centerx, sd.rect.centery, color=(200, 100, 255)))
+
+        # Trader Ticareti
+        for trader in pygame.sprite.spritecollide(p, self.traders, False):
+            if not trader.traded and p.emeralds >= TRADER_SKILL_COST:
+                p.emeralds -= TRADER_SKILL_COST
+                trader.traded = True
+                if self.coin_sound: self.coin_sound.play()
+                # Skill drop
+                stype = random.choice(['bow', 'sword', 'shield'])
+                self.skill_drops.add(SkillDrop(trader.rect.centerx, trader.rect.top - 20, stype))
 
         # Skill drop block carpismasi (yere dussun)
         for sd in self.skill_drops:
@@ -385,8 +410,16 @@ class Level:
 
         # Ok hasari
         for arrow in list(self.arrows):
-            if arrow.rect.colliderect(p.rect):
-                arrow.kill(); p.take_damage()
+            if arrow.is_player_arrow:
+                for e in list(self.enemies):
+                    if arrow.rect.colliderect(e.rect):
+                        arrow.kill()
+                        e.kill()
+                        self._create_explosion(e.rect.centerx, e.rect.centery)
+                        break
+            else:
+                if arrow.rect.colliderect(p.rect):
+                    arrow.kill(); p.take_damage()
 
         # Portal kontrolu (ustunden atlamayi engellemek icin X koordinatini kontrol et)
         if self.portal and p.rect.centerx >= self.portal.rect.centerx:
@@ -440,16 +473,32 @@ class Level:
         self._cleanup_left()
 
         p.world_x = max(p.world_x, p.rect.centerx + self.camera_x)
-        p.update()
-        self.enemies.update()
-        self.question_blocks.update()
+        
+        # Oyuncu saldirisi
+        attack = self.player.do_attack()
+        if attack == 'bow':
+            dir = 1 if self.player.facing_right else -1
+            self.arrows.add(Arrow(self.player.rect.centerx, self.player.rect.centery, dir, is_player_arrow=True))
+        elif attack == 'sword':
+            dir = 1 if self.player.facing_right else -1
+            hitbox = pygame.Rect(self.player.rect.centerx + (20 * dir) - 30, self.player.rect.centery - 30, 60, 60)
+            for e in list(self.enemies):
+                if hitbox.colliderect(e.rect):
+                    e.kill()
+                    self._create_explosion(e.rect.centerx, e.rect.centery)
+                    
+        # Gruplari guncelle
+        self.player_group.update()
+        self.enemies.update(self.blocks, self.player)
+        self.arrows.update()
         self.emeralds.update()
         self.hearts.update()
         self.skill_drops.update()
         self.particles.update()
         self.explosions.update()
-
-        if self.portal: self.portal.update()
+        if self.alex: self.alex.update()
+        self.traders.update()
+        self.llamas.update()
         if self.alex: self.alex.update()
 
         # Iskelet oklari
@@ -462,58 +511,48 @@ class Level:
     # ------- Cizim -------
     def draw(self):
         self._draw_background()
-        cam = int(self.camera_x)
+        cx = int(self.camera_x)
 
         # Agaclar (arka plan)
         for t in self.trees:
-            t.draw(self.display_surface, cam)
+            t.draw(self.display_surface, cx)
 
         # Cim
         for g in self.grass_tufts:
-            g.draw(self.display_surface, cam)
+            g.draw(self.display_surface, cx)
 
         # Bloklar
         for b in self.blocks:
-            self.display_surface.blit(b.image, (b.rect.x - cam, b.rect.y))
+            self.display_surface.blit(b.image, (b.rect.x - cx, b.rect.y))
 
         # Soru bloklari
         for qb in self.question_blocks:
-            qb.draw_offset(self.display_surface, cam)
+            qb.draw_offset(self.display_surface, cx)
 
         # Portal
         if self.portal:
-            self.display_surface.blit(self.portal.image, (self.portal.rect.x - cam, self.portal.rect.y))
-
-        # Alex
-        if self.alex:
-            self.alex.draw(self.display_surface, cam)
+            self.display_surface.blit(self.portal.image, (self.portal.rect.x - cx, self.portal.rect.y))
 
         # Zumrutler
         for em in self.emeralds:
-            self.display_surface.blit(em.image, (em.rect.x - cam, em.rect.y))
+            self.display_surface.blit(em.image, (em.rect.x - cx, em.rect.y))
 
         # Kalpler & Skill droplar
-        for h in self.hearts:
-            self.display_surface.blit(h.image, (h.rect.x - cam, h.rect.y))
-        for sd in self.skill_drops:
-            self.display_surface.blit(sd.image, (sd.rect.x - cam, sd.rect.y))
-
+        for h in self.hearts: self.display_surface.blit(h.image, (h.rect.x - cx, h.rect.y))
+        for sd in self.skill_drops: self.display_surface.blit(sd.image, (sd.rect.x - cx, sd.rect.y))
+        for p in self.particles: self.display_surface.blit(p.image, (p.rect.x - cx, p.rect.y))
+        for ex in self.explosions: self.display_surface.blit(ex.image, (ex.rect.x - cx, ex.rect.y))
+        for tr in self.traders: self.display_surface.blit(tr.image, (tr.rect.x - cx, tr.rect.y))
+        for ll in self.llamas: self.display_surface.blit(ll.image, (ll.rect.x - cx, ll.rect.y))
+        
+        self.player_group.draw(self.display_surface)
+        
         # Dusmanlar
         for e in self.enemies:
-            self.display_surface.blit(e.image, (e.rect.x - cam, e.rect.y))
+            self.display_surface.blit(e.image, (e.rect.x - cx, e.rect.y))
 
         # Oklar
         for a in self.arrows:
-            self.display_surface.blit(a.image, (a.rect.x - cam, a.rect.y))
+            self.display_surface.blit(a.image, (a.rect.x - cx, a.rect.y))
 
-        # Patlamalar
-        for exp in self.explosions:
-            self.display_surface.blit(exp.image, (exp.rect.x - cam, exp.rect.y))
-
-        # Oyuncu
-        if self.player.alive:
-            self.display_surface.blit(self.player.image, (self.player.rect.x - cam, self.player.rect.y))
-
-        # Parcaciklar
-        for pa in self.particles:
-            self.display_surface.blit(pa.image, (pa.rect.x - cam, pa.rect.y))
+        if self.alex: self.alex.draw(self.display_surface, cx)

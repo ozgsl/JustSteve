@@ -72,6 +72,11 @@ class Player(pygame.sprite.Sprite):
         self.emeralds = 0
         self.world_x = 0
 
+        # Trader Yetenekleri
+        self.active_skill = None
+        self.skill_timer = 0
+        self.attack_cooldown = 0
+
         # Ses
         self.jump_sound = self._snd('assets/sounds/jump.ogg')
         self.hit_sound = self._snd('assets/sounds/hit.ogg')
@@ -96,6 +101,10 @@ class Player(pygame.sprite.Sprite):
         else:
             self.invincible = True
             self.invincible_timer = INVINCIBILITY_FRAMES
+            if self.active_skill == 'shield':
+                # Eger shield yetenegi varsa, hasar aldiktan sonra kisa degil uzun bir invincible lazimdi, 
+                # ama zaten shield_timer invincible ile ayni, fakat kalkan bitince bitmemeli diye bir mantik...
+                pass
         if self.hit_sound: self.hit_sound.play()
 
     def heal(self, amount=1):
@@ -126,6 +135,13 @@ class Player(pygame.sprite.Sprite):
     def activate_double_jump(self):
         self.has_double_jump = True
 
+    def activate_trader_skill(self, skill_name):
+        self.active_skill = skill_name
+        self.skill_timer = SKILL_DURATION
+        if skill_name == 'shield':
+            self.invincible = True
+            self.invincible_timer = SKILL_DURATION
+
     def request_jump(self):
         self.jump_buffer_timer = JUMP_BUFFER
 
@@ -140,6 +156,14 @@ class Player(pygame.sprite.Sprite):
             self.dash_timer = DASH_DURATION
             self.dash_cooldown_timer = DASH_COOLDOWN
             self.dash_dir = 1 if self.facing_right else -1
+
+    def do_attack(self):
+        if hasattr(self, 'is_attacking') and self.is_attacking:
+            self.is_attacking = False
+            if self.active_skill in ['bow', 'sword'] and self.attack_cooldown <= 0:
+                self.attack_cooldown = 30
+                return self.active_skill
+        return None
 
     def _try_jump(self):
         if self.coyote_timer > 0:
@@ -181,6 +205,14 @@ class Player(pygame.sprite.Sprite):
             self.shrink_timer -= 1
             if self.shrink_timer <= 0:
                 self.deactivate_shrink()
+                
+        if self.active_skill:
+            self.skill_timer -= 1
+            if self.skill_timer <= 0:
+                self.active_skill = None
+        
+        if self.attack_cooldown > 0:
+            self.attack_cooldown -= 1
 
     def apply_gravity(self):
         if not self.dashing:
@@ -397,14 +429,15 @@ class Creeper(Enemy):
 # PROJECTILES & EFFECTS
 # =====================================================================
 class Arrow(pygame.sprite.Sprite):
-    def __init__(self, x, y, direction):
+    def __init__(self, x, y, direction, is_player_arrow=False):
         super().__init__()
         self.image = load_img('assets/textures/arrow.png', (24, 8))
-        if direction > 0:
+        if direction < 0: # Sola donuk oklar flip edilmeli
             self.image = pygame.transform.flip(self.image, True, False)
         self.rect = self.image.get_rect(center=(x, y))
         self.speed = ARROW_SPEED * direction
         self.lifetime = 180
+        self.is_player_arrow = is_player_arrow
 
     def update(self):
         self.rect.x += self.speed
@@ -627,3 +660,17 @@ class AlexNPC(pygame.sprite.Sprite):
     def draw(self, surface, camera_x):
         yo = int(math.sin(self.bob_timer * 0.05) * 3)
         surface.blit(self.image, (self.rect.x - camera_x, self.rect.y + yo))
+
+class Trader(pygame.sprite.Sprite):
+    """Llamali Tccar (Wandering Trader)."""
+    def __init__(self, x, y):
+        super().__init__()
+        self.image = load_img('assets/textures/trader.png', (PLAYER_WIDTH, PLAYER_HEIGHT))
+        self.rect = self.image.get_rect(midbottom=(x, y))
+        self.traded = False
+
+class Llama(pygame.sprite.Sprite):
+    def __init__(self, x, y):
+        super().__init__()
+        self.image = load_img('assets/textures/llama.png', (36, 36))
+        self.rect = self.image.get_rect(midbottom=(x, y))
