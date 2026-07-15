@@ -257,7 +257,7 @@ class Level:
     # ------- Kamera -------
     def _update_camera(self):
         target = self.player.rect.centerx - WIDTH // 3
-        self.camera_x += (target - self.camera_x) * 0.1
+        self.camera_x = target
         if self.camera_x < 0: self.camera_x = 0
 
     # ------- Carpisma -------
